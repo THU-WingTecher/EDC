@@ -147,7 +147,9 @@ def main():
     try:
         parser = argparse.ArgumentParser()
         parser.add_argument('target', type=str, help='The target database name, support mysql, mariadb, tidb, clickhouse')
+        parser.add_argument('--debug', action='store_true', help='Enable debug logging')
         args = parser.parse_args()
+
         target = args.target
         type_path = f'./seed/{target}/type'
         agg_path = f'./seed/{target}/agg'
@@ -158,8 +160,9 @@ def main():
 
         logger.remove()
         logger.add(sys.stderr, level='ERROR')
-        # logger.add(log_path + 'error_{time}.log', format='{time} {level} {message}', level='ERROR')
-        # logger.add(log_path + 'info_{time}.log', format='{time} {level} {message}', level='INFO')
+        if args.debug:
+            logger.add(log_path + 'error_{time}.log', format='{time} {level} {message}', level='ERROR')
+            logger.add(log_path + 'info_{time}.log', format='{time} {level} {message}', level='INFO')
         random.seed(config.seed)
 
         clean_dir(out_path)

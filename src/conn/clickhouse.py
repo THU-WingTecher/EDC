@@ -78,3 +78,4 @@ class ClickHouseConnection(Connection):
             logger.error('Clean database {} failed, reason: {}', database, e)
         finally:
             cursor.close()
+            tmp_conn.close()

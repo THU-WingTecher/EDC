@@ -14,6 +14,7 @@ class Connection:
         }
         self.conn = self.create_conn(self.config)
         self.res_blacklist = res_blacklist
+
     @abstractmethod
     def create_conn(self, config: dict):
         pass
@@ -27,9 +28,9 @@ class Connection:
         pass
 
     def close(self):
-        self.clean()
         try:
             self.conn.close()
+            self.clean()
         except Exception as e:
             logger.error('Connection closed failed, reason: {}', e)
 
