@@ -1,0 +1,49 @@
+version: '3'
+services:
+  mariadb:
+    image: "mariadb:11.5"
+    ports:
+      - "3366:3306"
+    volumes:
+      - ./db/mariadb/data:/var/lib/mysql
+      - ./db/mariadb/initdb.d:/docker-entrypoint-initdb.d
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+
+  mysql:
+    image: "mysql:9"
+    ports:
+      - "3380:3306"
+    volumes:
+      - ./db/mysql/data:/var/lib/mysql
+      - ./db/mysql/initdb.d:/docker-entrypoint-initdb.d
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+
+  percona-mysql:
+    image: percona/percona-server:8.4.2
+    container_name: percona-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+    ports:
+      - "3308:3306" 
+    volumes:
+      - ./db/percona/data:/var/lib/mysql  
+    # restart: always
+
+  dameng:
+    image: if010/dameng
+    container_name: dameng
+    ports:
+      - "5236:5236"
+    environment:
+      TZ: "Asia/Shanghai"
+      PAGE_SIZE: 16
+      EXTENT_SIZE: 32
+      CASE_SENSITIVE: 0
+      UNICODE_FLAG: 1
+      INSTANCE_NAME: "DAMENG"
+      SYSDBA_PWD: "SYSDBA001"
+    volumes:
+      - ./db/dameng/data:/opt/dmdbms/data
+    # restart: always

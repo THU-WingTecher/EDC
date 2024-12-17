@@ -1,0 +1,55 @@
+# Python Bytecode files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / Packaging
+.Python
+env/
+venv/
+ENV/
+venv.bak/
+*.egg-info/
+*.egg
+dist/
+build/
+
+# IDEs and Editors
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Log files
+*.log
+
+# Test output
+nosetests.xml
+coverage.xml
+*.cover
+*.hypothesis/
+.pytest_cache/
+*.tox/
+*.nox/
+
+# mypy
+.mypy_cache/
+
+# PyInstaller
+*.spec
+
+# pipenv
+Pipfile.lock
+
+# virtualenv
+venv/
