@@ -6,31 +6,36 @@ from config import config
 from util import clean_dir, get_conn, log_res, read_file
 from sql.sql_generator import SQLGenerator
 import traceback
+from enum import Enum
 
+class OpType(Enum):
+    AGGREGATE = 1
+    FUNCTION = 2
+    PREDICATE = 3
 
-def generate_expr(op: str, op_type: int, column_types: list, column_names: list):
-    if op_type == 1:
+def generate_equal_expr(op: str, op_type: OpType, column_types: list, column_names: list):
+    if op_type == OpType.AGGREGATE:
         return f'{op}({",".join(column_names)})'
-    elif op_type == 2:
-        if op == '+' or op == '-' or op == '*' or op == '/':
+    elif op_type == OpType.FUNCTION:
+        if op in ['+', '-', '*', '/', '%']:
             return op.join(column_names)
         else:
             return f'{op}({",".join(column_names)})'
-    elif op_type == 3:
-        if (op == 'IS NULL' or op == 'IS NOT NULL') and len(column_names) == 1:
+    elif op_type == OpType.PREDICATE:
+        if (op in ['IS NULL', 'IS NOT NULL']) and len(column_names) == 1:
             return f'{column_names[0]} {op}'
-        elif (op == 'LIKE' or op == 'NOT LIKE') and len(column_names) == 2:
+        elif (op in ['LIKE', 'NOT LIKE', 'IS']) and len(column_names) == 2:
             return f'{column_names[0]} {op} {column_names[1]}'
-        elif (op == 'IN' or op == 'NOT IN') and len(column_names) > 1:
-            return f'{column_names[0]} {op} ({",".join(column_names[1:])})'
+        elif op in ['>', '<', '<=', '>=', '<>'] and len(column_names) == 2:
+            return f'{column_names[0]} {op} {column_names[1]}'
         elif op == 'BETWEEN' and len(column_names) == 3:
             return f'{column_names[0]} {op} {column_names[1]} AND {column_names[2]}'
-        elif (op == '>' or op == '<' or op == '<=' or op == '>=' or op == '<>') and len(column_names) == 2:
-            return f'{column_names[0]} {op} {column_names[1]}'
+        elif (op in ['IN', 'NOT IN']) and len(column_names) > 1:
+            return f'{column_names[0]} {op} ({",".join(column_names[1:])})'
         else:
-            raise ValueError(f'Invalid operation type and op comnination: {op}, {column_types}')
+            raise ValueError(f'Invalid operation type and op combination: {op}, {column_types}')
     else:
-        raise ValueError(f'Invalid operation type and op comnination: {op}, {column_types}')
+        raise ValueError(f'Invalid operation type and op combination: {op}, {column_types}')
 
 
 def get_derived_type(conn, target: str, derived_table: str, col: str):
@@ -64,7 +69,7 @@ def get_derived_type(conn, target: str, derived_table: str, col: str):
 
 
 def construct_derived_table(conn, target: str, ori_table: str, derived_table: str, other_column_names: list, 
-                          other_column_types: list, test_expr: str, op_type: int, dest_res: list, insert_res: list):
+                          other_column_types: list, test_expr: str, op_type: OpType, dest_res: list, insert_res: list):
     """
     Constructs a derived table based on the target database system and operation type.
     
@@ -86,7 +91,7 @@ def construct_derived_table(conn, target: str, ori_table: str, derived_table: st
     
     # Prepare GROUP BY clause for aggregate operations
     group_by_clause = ''
-    if op_type == 1:
+    if op_type == OpType.AGGREGATE:
         group_by_clause = f'GROUP BY {", ".join(other_column_names)}'
 
     # Create table based on target database system
@@ -161,8 +166,16 @@ def main():
         logger.remove()
         logger.add(sys.stderr, level='ERROR')
         if args.debug:
-            logger.add(log_path + 'error_{time}.log', format='{time} {level} {message}', level='ERROR')
-            logger.add(log_path + 'info_{time}.log', format='{time} {level} {message}', level='INFO')
+            logger.add(log_path + 'error_{time}.log', 
+                        format='{time} {level} {message}', 
+                        level='ERROR', 
+                        rotation='10 MB', 
+                        compression='zip')
+            logger.add(log_path + 'info_{time}.log', 
+                        format='{time} {level} {message}', 
+                        level='INFO', 
+                        rotation='50 MB', 
+                        compression='zip') 
         random.seed(config.seed)
 
         clean_dir(out_path)
@@ -177,15 +190,15 @@ def main():
             other_column = random.randint(0, config.other_column_cnt)
             column_types = []
             column_names = []
-            op_type = random.randint(1, 3)
+            op_type = random.choice(list(OpType))
 
             # select target operation
-            if op_type == 1:
+            if op_type == OpType.AGGREGATE:
                 op = random.choice(agg_list)
                 other_column = max(1, other_column)
-            elif op_type == 2:
+            elif op_type == OpType.FUNCTION:
                 op = random.choice(func_list)
-            elif op_type == 3:
+            elif op_type == OpType.PREDICATE:
                 op = random.choice(pred_list)
                 other_column = max(1, other_column)
         
@@ -207,7 +220,7 @@ def main():
             
             # generate test expression
             try:
-                test_expr = generate_expr(op, op_type, column_types, test_column_names)
+                test_expr = generate_equal_expr(op, op_type, column_types, test_column_names)
             except ValueError as e:
                 continue
 
@@ -258,11 +271,11 @@ def main():
                 continue
 
             for i in range(config.select_cnt):
-                if op_type == 1:
+                if op_type == OpType.AGGREGATE:
                     base_select, equal_select = sql_generator.generate_agg_select(ori_table, derived_table, test_expr, expr_type, expr_col, other_column_names, other_column_types)
-                elif op_type == 2:
+                elif op_type == OpType.FUNCTION:
                     base_select, equal_select = sql_generator.generate_func_select(ori_table, derived_table, test_expr, expr_type, expr_col, other_column_names, other_column_types)
-                elif op_type == 3:
+                elif op_type == OpType.PREDICATE:
                     base_select, equal_select = sql_generator.generate_pred_select(ori_table, derived_table, test_expr, expr_type, expr_col, other_column_names, other_column_types)
                 try:
                     # Execute and check results

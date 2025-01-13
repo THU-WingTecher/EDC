@@ -16,3 +16,9 @@ FixedString
 Date
 DateTime
 UUID
+Point
+Ring
+LineString
+MultiLineString
+Polygon
+MultiPolygon

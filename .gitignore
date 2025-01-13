@@ -1,3 +1,7 @@
+db/
+res/
+log/
+
 # Python Bytecode files
 __pycache__/
 *.py[cod]

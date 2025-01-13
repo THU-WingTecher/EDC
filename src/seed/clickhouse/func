@@ -2,6 +2,7 @@
 -
 *
 /
+%
 logTrace
 aes_decrypt_mysql
 aes_encrypt_mysql
@@ -674,10 +675,8 @@ parseDateTimeBestEffortUS
 toDayOfMonth
 gcd
 protocol
-currentUser
 if
 caseWithoutExpression
-currentDatabase
 log10
 moduloOrZero
 MD4
@@ -899,3 +898,4 @@ toWeek
 arrayFlatten
 date_trunc
 modulo
+greatCircleDistance
