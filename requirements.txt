@@ -1,0 +1,5 @@
+loguru>=0.7.0
+mysql-connector-python>=8.0.0
+clickhouse-connect>=0.6.0
+dmPython>=1.0.0
+configparser>=5.0.0 

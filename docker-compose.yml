@@ -1,5 +1,22 @@
 version: '3'
 services:
+  edc-app:
+    image: dwenking/edc:latest
+    build: .
+    volumes:
+      - ./log:/app/log
+      - ./res:/app/res
+    depends_on:
+      - mysql
+      - mariadb
+      - percona-mysql
+      - dameng
+    environment:
+      - TZ=Asia/Shanghai
+    tty: true
+    stdin_open: true
+    network_mode: "host"
+
   mariadb:
     image: "mariadb:11.7"
     ports:
@@ -29,7 +46,6 @@ services:
       - "3308:3306" 
     volumes:
       - ./db/percona/data:/var/lib/mysql  
-    # restart: always
 
   dameng:
     image: if010/dameng
@@ -46,4 +62,3 @@ services:
       SYSDBA_PWD: "SYSDBA001"
     volumes:
       - ./db/dameng/data:/opt/dmdbms/data
-    # restart: always

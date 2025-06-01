@@ -4,19 +4,92 @@ Equivalent Data Construction (EDC) is a testing framework designed to detect log
 
 # Getting Started
 
-Requirements:
+## Requirements
 
 * Python
+* Docker and Docker Compose
 * The corresponding DBMSs for testing, check the config file to make sure EDC gets the right connection
 * Create a database named 'test' in the corresponding DBMS
 
-Running the following commands to start EDC:
+## Using Docker
 
+1. Clone the repository:
+
+```bash
+git clone <repository-url>
+cd edc
 ```
+
+2. Start the services:
+
+```bash
+docker-compose up -d
+```
+
+3. Enter the EDC container:
+
+```bash
+docker-compose exec edc-app bash
+```
+
+4. Run tests:
+
+```bash
+cd src
+
+# Test MySQL
+python main.py mysql
+
+# Test MariaDB
+python main.py mariadb
+
+# Test Percona
+python main.py percona
+
+# Test Dameng
+python main.py dameng
+```
+
+5. View results:
+
+* Test results are stored in `./res/{db}/`
+* Logs are stored in `./log/{db}/`
+
+6. Stop services:
+
+```bash
+docker-compose down
+```
+
+## Manual Installation
+
+If you prefer to run EDC without Docker:
+
+1. Install Python dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+2. Run EDC:
+
+```bash
 cd src
 python main.py mysql
 ```
 
-Other suported parameters: mysql, mariadb, clickhouse, tidb, percona, oceanbase.
+Other supported parameters: mysql, mariadb, clickhouse, tidb, percona, oceanbase.
 
 Output files are stored under ./res/{db}, and logs are stored under ./log/{db}.
+
+## Configuration
+
+Database connection settings can be found in `src/config/conn.ini`. Make sure to update these settings according to your environment.
+
+## Troubleshooting
+
+1. If you can't connect to the database:
+
+   * Check if the database service is running
+   * Verify the connection settings in `src/config/conn.ini`
+   * Make sure the database user has proper permissions
