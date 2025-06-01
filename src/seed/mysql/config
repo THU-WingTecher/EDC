@@ -1,0 +1,10 @@
+sql_mode
+time_zone
+character_set_results
+character_set_client
+character_set_connection
+collation_connection
+foreign_key_checks
+sql_safe_updates
+query_cache_type
+explicit_defaults_for_timestamp

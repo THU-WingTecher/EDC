@@ -97,7 +97,7 @@ class ExprGenerator:
             return random.randint(-9223372036854775808, 9223372036854775807)
         elif data_type.startswith("DECIMAL") or "DEC" in data_type:
             return round(random.uniform(-1e10, 1e10), 6)
-        elif data_type in ["FLOAT", "REAL"]:
+        elif data_type in ["FLOAT", "REAL", "FLOAT64"]:
             return self._generate_float_value()
         elif data_type == "DOUBLE":
             return self._generate_double_value()
@@ -107,7 +107,7 @@ class ExprGenerator:
             return self._generate_binary_value(data_type)
         elif data_type in ["TINYBLOB", "BLOB", "MEDIUMBLOB", "LONGBLOB"]:
             return self._generate_blob_value()
-        elif data_type in ["TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT", "CLOB"]:
+        elif data_type in ["TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT", "CLOB", "STRING"]:
             return self._generate_text_value()
         elif data_type.startswith("VARCHAR") or data_type.startswith("CHAR") or data_type.startswith("FIXEDSTRING"):
             return self._generate_string_value(data_type)
@@ -134,8 +134,10 @@ class ExprGenerator:
         elif data_type == "GEOMETRY":
             data_type = random.choice(["POINT", "LINESTRING", "POLYGON", "MULTIPOINT", "MULTILINESTRING", "MULTIPOLYGON", "GEOMETRYCOLLECTION"])
             return self._generate_spatial_value(data_type)
-        elif data_type in ["POINT", "LINESTRING", "POLYGON", "MULTIPOINT", "MULTILINESTRING", "MULTIPOLYGON", "GEOMCOLLECTION", "GEOMETRYCOLLECTION"]:
+        elif data_type in ["POINT", "LINESTRING", "POLYGON", "MULTIPOINT", "MULTILINESTRING", "MULTIPOLYGON", "GEOMCOLLECTION", "GEOMETRYCOLLECTION", "RING"]:
             return self._generate_spatial_value(data_type)
+        elif data_type.startswith("VECTOR"):
+            return self._generate_vector_value(data_type)
         else:
             raise ValueError(f"Unsupported data type in {self.database}: {data_type}")
 
@@ -359,7 +361,12 @@ class ExprGenerator:
                 [(random.uniform(-100, 100), random.uniform(-100, 100)) for _ in range(random.randint(3, 10))]
                 for _ in range(num_lines)
             ]
-            return f"[{', '.join(f'[{", ".join(f"({x:.6f}, {y:.6f})" for x, y in line)}]' for line in lines)}]"
+            line_strings = []
+            for line in lines:
+                points = [f"({x:.6f}, {y:.6f})" for x, y in line]
+                line_string = f"[{', '.join(points)}]"
+                line_strings.append(line_string)
+            return f"[{', '.join(line_strings)}]"
         elif data_type == "POLYGON":
             def random_ring():
                 x1, y1 = random.uniform(-100, 100), random.uniform(-100, 100)
@@ -375,8 +382,31 @@ class ExprGenerator:
                 x1, y1 = random.uniform(-100, 100), random.uniform(-100, 100)
                 x2, y2 = random.uniform(x1, x1 + 50), random.uniform(y1, y1 + 50)
                 return [[(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)]]
+            
             num_polygons = random.randint(2, 5)
             polygons = [random_polygon() for _ in range(num_polygons)]
-            return f"[{', '.join(f'[[{", ".join(f"({x:.6f}, {y:.6f})" for x, y in polygon[0])}]]' for polygon in polygons)}]"
+            
+            # Fix: Break down the nested f-strings
+            polygon_strings = []
+            for polygon in polygons:
+                points = [f"({x:.6f}, {y:.6f})" for x, y in polygon[0]]
+                polygon_string = f"[[{', '.join(points)}]]"
+                polygon_strings.append(polygon_string)
+            
+            return f"[{', '.join(polygon_strings)}]"
         else:
             raise ValueError(f"Unsupported spatial data type: {data_type}")
+        
+    def _generate_vector_value(self, data_type):
+        if self.database in ['mariadb']:
+            return self._generate_mariadb_vector_value(data_type)
+        else:
+            raise ValueError(f"Unsupported vector data type")
+        
+    def _generate_mariadb_vector_value(self, data_type):
+        if '(' in data_type and ')' in data_type:
+            length = int(data_type[data_type.find('(')+1:data_type.find(')')])
+        else:
+            length = 10
+        values = [random.uniform(-1000000, 1000000) for _ in range(length)]
+        return f"VEC_FromText('[{', '.join(str(value) for value in values)}]')"

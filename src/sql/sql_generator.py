@@ -71,3 +71,41 @@ class SQLGenerator:
     def generate_insert(self, table: str, column_types: list, column_names: list):
         values = ", ".join([str(self.expr_generator.generate_random_value(col_type)) for col_type in column_types])
         return f'INSERT INTO {table} ({", ".join(column_names)}) VALUES ({values})'
+
+    def generate_set(self, config_list: list):
+        if self.database in ['mysql', 'mariadb']:
+            config = random.choice(config_list)
+            # 随机生成配置值
+            if config == 'sql_mode':
+                # 生成随机的 sql_mode 值
+                sql_modes = ["''", "'STRICT_TRANS_TABLES'", "'NO_ZERO_IN_DATE'", "'NO_ZERO_DATE'"]
+                value = random.choice(sql_modes)
+            elif config == 'time_zone':
+                # 生成随机的时区
+                time_zones = ["'+00:00'", "'+08:00'", "'-05:00'", "'Europe/London'"]
+                value = random.choice(time_zones)
+            elif config in ['character_set_results', 'character_set_client', 'character_set_connection']:
+                # 生成随机字符集
+                charsets = ["'utf8'", "'utf8mb4'", "'latin1'", "'ascii'"]
+                value = random.choice(charsets)
+            elif config in ['collation_connection']:
+                # 生成随机排序规则
+                collations = ["'utf8_general_ci'", "'utf8mb4_general_ci'", "'latin1_swedish_ci'"]
+                value = random.choice(collations)
+            elif config in ['foreign_key_checks', 'sql_safe_updates']:
+                # 生成随机布尔值
+                value = random.choice([0, 1])
+            elif config in ['query_cache_type']:
+                # 生成随机查询缓存类型
+                query_cache_types = [0, 1, 2]  # OFF, ON, DEMAND
+                value = random.choice(query_cache_types)
+            elif config in ['explicit_defaults_for_timestamp']:
+                # 生成随机布尔值
+                value = random.choice([0, 1])
+            else:
+                raise ValueError(f"Unsupported config type {config} for SET statements.")
+            set_statement = f"SET {config} = {value};"
+            return set_statement
+        else:
+            raise ValueError("Unsupported database type for SET statements.")
+            

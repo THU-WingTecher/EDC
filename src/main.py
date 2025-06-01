@@ -160,6 +160,7 @@ def main():
         agg_path = f'./seed/{target}/agg'
         func_path = f'./seed/{target}/func'
         pred_path = f'./seed/{target}/pred'
+        db_config_path = f'./seed/{target}/config'
         log_path = f'../log/{target}/'
         out_path = f'../res/{target}/'
 
@@ -183,6 +184,10 @@ def main():
         agg_list = read_file(agg_path)
         func_list = read_file(func_path)
         pred_list = read_file(pred_path)
+        if target == 'mysql':
+            db_config_list = read_file(db_config_path)
+        else:
+            db_config_list = []
         loop = 0
         while True:
             loop += 1
@@ -212,6 +217,9 @@ def main():
                 if column_type.startswith('CHAR') or column_type.startswith('VAR') or column_type == 'BINARY':
                     column_length = random.randint(1, 30)
                     column_type = f"{column_type}({column_length})"
+                if column_type == 'VECTOR':
+                    column_length = random.randint(1, 10)
+                    column_type = f"VECTOR({column_length})"
                 column_types.append(column_type)
                 column_names.append(f'c{i}')
             
@@ -271,12 +279,24 @@ def main():
                 continue
 
             for i in range(config.select_cnt):
+                # experimental: randomly add set statement, only for mysql currently
+                if target == 'mysql' and random.random() < 0.1:  
+                    set_statement = sql_generator.generate_set(db_config_list) 
+                    try:
+                        res = conn.execute(set_statement)
+                        logger.info(f"Executed configuration modification: {set_statement}")
+                    except Exception as e:
+                        logger.error(f"Error executing configuration modification: {set_statement}, error: {str(e)}")
+                    ori_res.append(res)
+                    dest_res.append(res)
+
                 if op_type == OpType.AGGREGATE:
                     base_select, equal_select = sql_generator.generate_agg_select(ori_table, derived_table, test_expr, expr_type, expr_col, other_column_names, other_column_types)
                 elif op_type == OpType.FUNCTION:
                     base_select, equal_select = sql_generator.generate_func_select(ori_table, derived_table, test_expr, expr_type, expr_col, other_column_names, other_column_types)
                 elif op_type == OpType.PREDICATE:
                     base_select, equal_select = sql_generator.generate_pred_select(ori_table, derived_table, test_expr, expr_type, expr_col, other_column_names, other_column_types)
+
                 try:
                     # Execute and check results
                     res1 = conn.execute(base_select)
@@ -292,12 +312,9 @@ def main():
                         break
 
                 except Exception as e:
-                    # 记录导致崩溃的 SQL 和错误信息
                     logger.error(f"SQL execution error in loop {loop}: {str(e)}")
-                    
-                    # 即使发生错误也记录结果
                     log_res(test_column, op, ori_res, dest_res, insert_res, f'crash_test_{target}_{loop}_error', out_path)
-                    continue  # 或者 continue
+                    continue 
 
             conn.close()
             log_res(test_column, op, ori_res, dest_res, insert_res, f'test_{target}_{loop}', out_path)
@@ -305,7 +322,7 @@ def main():
     except Exception as e:
         logger.error(f"Main error: {e}")
         logger.error(traceback.format_exc())
-        # 在主循环外的错误也记录结果
+
         if 'base_select' in locals() and 'equal_select' in locals():
             log_res(test_column, op, ori_res, dest_res, insert_res, f'crash_test_{target}_main_error', out_path)
     finally:

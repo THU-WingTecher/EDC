@@ -70,12 +70,10 @@ class ClickHouseConnection(Connection):
             'database': 'test',
         }
         tmp_conn = self.create_conn(tmp_config)
-        cursor = tmp_conn.cursor()
         
         try:
-            cursor.execute('DROP DATABASE IF EXISTS ' + database)
+            tmp_conn.query('DROP DATABASE IF EXISTS ' + database)
         except Exception as e:
             logger.error('Clean database {} failed, reason: {}', database, e)
         finally:
-            cursor.close()
             tmp_conn.close()
