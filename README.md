@@ -93,3 +93,9 @@ Database connection settings can be found in `src/config/conn.ini`. Make sure to
    * Check if the database service is running
    * Verify the connection settings in `src/config/conn.ini`
    * Make sure the database user has proper permissions
+
+# Code Structure
+
+* `seed/`: This directory stores database-specific metadata. Each subfolder (e.g., `mysql/`) contains definitions for supported data types (`type/`), function (`func/`), predicate (`pred/`), and aggregate (`agg/`) operations. 
+* `conn/`: Manages database connections. base.py defines the abstract base_connection interface. To connect to a new database, users implement this interface (e.g., mysql.py) by defining methods like create_conn and execute to handle database-specific connection and query execution.
+* `sql/`: Responsible for SQL query generation. `expr_generator.py` handles the generation of complex expressions for WHERE and HAVING clauses. `sql_generator.py` builds the overall SELECT query structure, including the transformation logic for equivalent queries. For more advanced SQL generation or to support DBMS-specific syntax, developers can extend or customize the logic within these files.
